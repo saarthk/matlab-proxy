@@ -358,6 +358,33 @@ async def licensing_info_delete(req):
 
     return await create_status_response(req.app)
 
+@token_auth.authenticate_access_decorator
+async def terminate_app(req):
+    """API Endpoint to terminate the Integration and shutdown the server.
+
+    Args:
+        req (HTTPRequest): HTTPRequest Object
+    """
+    app = req.app
+    state = app["state"]
+
+    # Explicitly send response before the handler returns, to execute follow-up operations
+    resp = await create_status_response(app)
+    await resp.prepare(req)
+    await resp.write_eof()
+
+    # Gracefully shutdown MATLAB
+    await state.stop_matlab()
+    
+    loop = util.get_event_loop()
+    # Run the current batch of callbacks and then exit.
+    # This completes the loop.run_forever() blocking call, and subsequent code
+    # in main() resumes execution
+    loop.stop()
+
+    # web.Response object must be returned. This is required by
+    # aiohttp web contracts, even though the response has already been sent
+    return resp
 
 @token_auth.authenticate_access_decorator
 async def termination_integration_delete(req):
@@ -800,7 +827,7 @@ def create_app(config_name=matlab_proxy.get_default_config_name()):
         "DELETE", f"{base_url}/set_licensing_info", licensing_info_delete
     )
     app.router.add_route(
-        "DELETE", f"{base_url}/terminate_integration", termination_integration_delete
+        "DELETE", f"{base_url}/terminate_integration", terminate_app
     )
     app.router.add_route("*", f"{base_url}/", root_redirect)
     app.router.add_route("*", f"{base_url}", root_redirect)

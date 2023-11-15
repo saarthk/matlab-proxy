@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useInterval } from 'react-use';
+import { useInterval, useTimeoutFn } from 'react-use';
 import './App.css';
 import Confirmation from '../Confirmation';
 import OverlayTrigger from '../OverlayTrigger';
@@ -36,6 +36,7 @@ import {
     setOverlayVisibility,
     fetchServerStatus,
     fetchEnvConfig,
+    fetchTerminateIntegration,
     updateAuthStatus,
 } from '../../actionCreators';
 import blurredBackground from './MATLAB-env-blur.png';
@@ -174,6 +175,20 @@ function App() {
         }
         window.history.replaceState(null, '', `${baseUrl}index.html`);
     }, [dispatch, baseUrl]);
+    
+    let timerCancel, timerReset;
+    [, timerCancel, timerReset] = useTimeoutFn(() => {
+        // console.log("Requesting termination");
+        dispatch(fetchTerminateIntegration());
+    }, 5000);
+
+    useEffect(() => {
+        if (!authEnabled || isAuthenticated) {
+            timerReset();
+        } else {
+            timerCancel();
+        }
+    }, [authEnabled, isAuthenticated]);
 
     // Display one of:
     // * Confirmation
@@ -232,8 +247,16 @@ function App() {
 
     const overlayTrigger = overlayVisible ? null : <OverlayTrigger />;
 
+    let listenForEvents = (!authEnabled || isAuthenticated);
+    const handleClick = (e) => {
+        timerReset();
+        console.log("Resetting timer!");
+    };
+
     return (
-        <div data-testid="app" className="main">
+        <div data-testid="app" className="main"
+        onClick={listenForEvents ? handleClick : undefined}
+        >
             {overlayTrigger}
             {matlabJsd}
             {overlay}
