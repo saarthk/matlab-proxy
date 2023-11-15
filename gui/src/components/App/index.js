@@ -28,6 +28,7 @@ import {
   selectLicensingMhlmHasEntitlements,
   selectIsEntitled,
   selectLicensingInfo,
+  selectIdleTimeoutDuration,
 } from "../../selectors";
 
 import {
@@ -57,6 +58,9 @@ function App() {
     const isAuthenticated = useSelector(selectIsAuthenticated)
     const authEnabled = useSelector(selectAuthEnabled);
     const licensingInfo = useSelector(selectLicensingInfo);
+    // Timeout duration is specified in seconds, but useTimeoutFn accepts timeout values in ms.
+    // Multiply the timeout value by 1000 to convert to milliseconds.
+    const idleTimeoutDurationInMS = useSelector(selectIdleTimeoutDuration) * 1000;
 
     const baseUrl = useMemo(() => {
         const url = document.URL        
@@ -161,10 +165,10 @@ function App() {
     [, timerCancel, timerReset] = useTimeoutFn(() => {
         // console.log("Requesting termination");
         dispatch(fetchTerminateIntegration());
-    }, 5000);
+    }, idleTimeoutDurationInMS);
 
     useEffect(() => {
-        if (!authEnabled || isAuthenticated) {
+        if ((!authEnabled || isAuthenticated) && (idleTimeoutDurationInMS > 0)) {
             timerReset();
         } else {
             timerCancel();
