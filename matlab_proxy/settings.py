@@ -321,6 +321,7 @@ def get_server_settings(config_name):
         "ssl_context": get_ssl_context(
             ssl_cert_file=ssl_cert_file, ssl_key_file=ssl_key_file
         ),
+        "mwi_idle_timeout": os.getenv(mwi_env.get_env_idle_timeout(), -1)
     }
 
 

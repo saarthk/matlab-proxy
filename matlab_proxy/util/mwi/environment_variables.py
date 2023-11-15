@@ -155,3 +155,8 @@ def get_env_name_custom_matlab_root():
 def get_env_name_process_startup_timeout():
     """User specified timeout in seconds for processes launched by matlab-proxy"""
     return "MWI_PROCESS_START_TIMEOUT"
+
+
+def get_env_idle_timeout():
+    """User specified timeout in seconds for idle state termination of matlab-proxy"""
+    return "MWI_IDLE_TIMEOUT"
