@@ -1280,3 +1280,31 @@ class AppState:
             if err is not None:
                 self.error = err
                 log_error(logger, err)
+
+    async def get_matlab_busy_status(self):
+        """Determine the operational status of the MVM thread, whether it's busy or idle.
+
+        Returns:
+            String: Operational status of MATLAB. Returns busy, idle or na
+        """
+
+        # MATLAB can either be "busy", "idle" or "na", depending on whether the MVM thread is executing a task or not.
+        # busy and idle responses are returned only when MATLAB is up (as determined by get_matlab_state).
+        # In all other cases, "na" is returned.
+
+        if not self.get_matlab_state() == "up":
+            return "na"
+
+        headers = (
+            {self.settings["mwi_auth_token_name"]: self.settings["mwi_auth_token_hash"]}
+            if self.settings["mwi_is_token_auth_enabled"]
+            else None
+        )
+
+        mvm_op_status = await mwi.embedded_connector.request.get_matlab_busy_status(
+            mwi_server_url=self.settings["mwi_server_url"],
+            headers=headers,
+        )
+
+        return mvm_op_status
+

@@ -114,7 +114,7 @@ async def get_state(mwi_server_url, headers=None):
 
 
 async def get_matlab_busy_status(mwi_server_url, headers=None):
-    """Returns the status of MATLAB via the Embedded Connector (EC), whether it's busy or idle
+    """Returns the status of MATLAB, whether it's busy or idle
 
     Args:
         port (int): The port on which the embedded connector is running at
