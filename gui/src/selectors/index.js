@@ -17,9 +17,10 @@ export const selectLoadUrl = state => state.loadUrl;
 export const selectError = state => state.error;
 export const selectUseMOS = state => state.useMOS === true;
 export const selectUseMRE = state => state.useMRE === true;
-export const selectAuthEnabled = state => state.authentication.enabled;
-export const selectAuthToken = state => state.authentication.token;
-export const selectIsAuthenticated = state => state.authentication.status === true;
+export const selectAuthEnabled = state => state.authInfo.authEnabled;
+export const selectAuthToken = state => state.authInfo.authToken;
+export const selectIsAuthenticated = state => state.authInfo.authStatus === true;
+export const selectIdleTimeoutDuration = state => state.idleTimeoutDuration;
 
 export const selectTriggerPosition = createSelector(
     state => state.triggerPosition,
