@@ -154,6 +154,10 @@ async def get_env_config(req):
 
     # In a previously authenticated session, if the url is accessed without the token(using session cookie), send the token as well.
     config["authStatus"] = True if await token_auth.authenticate_request(req) else False
+
+    # Send timeout duration for the idle timer as part of the response
+    config["idleTimeoutDuration"] = state.settings["mwi_idle_timeout"]
+    
     return web.json_response(config)
 
 

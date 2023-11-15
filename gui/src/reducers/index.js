@@ -57,6 +57,16 @@ export function authToken(state = null, action) {
     }
 }
 
+// Stores timeout duration for idle timer.
+export function idleTimeoutDuration(state = null, action) {
+    switch (action.type) {
+        case RECEIVE_ENV_CONFIG:
+            return action.config.idleTimeoutDuration;
+        default:
+            return state;
+    }
+}
+
 export function triggerPosition(state = { x: window.innerWidth / 2 + 27, y: 0 }, action) {
     switch (action.type) {
         case SET_TRIGGER_POSITION:
@@ -251,7 +261,7 @@ export function envConfig(state = null, action) {
         case RECEIVE_ENV_CONFIG:
             // Token authentication info is also sent as a response to /get_env_config endpoint.
             // As its already stored in 'authStatus', 'authEnabled' and 'authToken', ignoring it in envConfig.
-            const { authStatus, authEnabled, ...envConfig } = action.config
+            const { authStatus, authEnabled, idleTimeoutDuration, ...envConfig } = action.config
             return envConfig
         default:
             return state;
