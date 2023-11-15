@@ -166,6 +166,11 @@ async def get_env_config(req):
         "supported_versions": constants.SUPPORTED_MATLAB_VERSIONS,
     }
 
+    config["authStatus"] = True if await token_auth.authenticate_request(req) else False
+
+    # Send timeout duration for the idle timer as part of the response
+    config["idleTimeoutDuration"] = state.settings["mwi_idle_timeout"]
+    
     return web.json_response(config)
 
 

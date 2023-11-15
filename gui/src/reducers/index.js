@@ -77,6 +77,16 @@ export function authToken(state = null, action) {
     }
 }
 
+// Stores timeout duration for idle timer.
+export function idleTimeoutDuration(state = null, action) {
+    switch (action.type) {
+        case RECEIVE_ENV_CONFIG:
+            return action.config.idleTimeoutDuration;
+        default:
+            return state;
+    }
+}
+
 export function triggerPosition(state = { x: window.innerWidth / 2 + 27, y: 0 }, action) {
     switch (action.type) {
         case SET_TRIGGER_POSITION:
@@ -289,10 +299,16 @@ export function error(state = null, action) {
 export function envConfig(state = null, action) {
     switch (action.type) {
         case RECEIVE_ENV_CONFIG:
+<<<<<<< HEAD
             // Token authentication and matlab info is also sent as a response to /get_env_config endpoint.
             // The authentication and matlab pieces of redux state are updated accordingly for the RECEIVE_ENV_CONFIG action type.
             // Hence, storing the rest of the envConfig without authentication and matlab info. 
             const { authentication, matlab,  ...envConfig } = action.config
+=======
+            // Token authentication info is also sent as a response to /get_env_config endpoint.
+            // As its already stored in 'authStatus', 'authEnabled' and 'authToken', ignoring it in envConfig.
+            const { authStatus, authEnabled, idleTimeoutDuration, ...envConfig } = action.config
+>>>>>>> 40c7306 (added state variable (redux) to store timeout duration, return idleTimeoutDuration as part of response to get_env_config)
             return envConfig
         default:
             return state;
