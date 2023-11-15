@@ -196,3 +196,6 @@ class Experimental:
     def get_mpa_flags():
         """Returns list of flags required to enable MPA"""
         return ["-webui", "-externalUI"]
+def get_env_idle_timeout():
+    """User specified timeout in seconds for idle state termination of matlab-proxy"""
+    return "MWI_IDLE_TIMEOUT"
