@@ -108,7 +108,7 @@ async def create_status_response(app, loadUrl=None):
         {
             "matlab": {
                 "status": await state.get_matlab_state(),
-                "busy_status": await state.get_matlab_busy_status(),
+                "busyStatus": await state.get_matlab_busy_status(),
             },
             "licensing": marshal_licensing_info(state.licensing),
             "loadUrl": loadUrl,

@@ -1280,7 +1280,8 @@ class AppState:
         # busy and idle responses are returned only when MATLAB is up (as determined by get_matlab_state).
         # In all other cases, "na" is returned.
 
-        if not self.get_matlab_state() == "up":
+        current_matlab_state = await self.get_matlab_state()
+        if not current_matlab_state == "up":
             return "na"
 
         headers = (

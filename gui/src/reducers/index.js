@@ -131,6 +131,21 @@ export function matlabStatus(state = 'down', action) {
     }
 }
 
+export function matlabBusyStatus(state = 'na', action) {
+    switch (action.type) {
+        case RECEIVE_SERVER_STATUS:
+        case RECEIVE_SET_LICENSING:
+        case RECEIVE_TERMINATE_INTEGRATION:
+        case RECEIVE_STOP_MATLAB:
+        case RECEIVE_START_MATLAB:
+            return action.status.matlab.busyStatus;
+        case REQUEST_STOP_MATLAB:
+        case REQUEST_START_MATLAB:
+            return action.status;
+        default:
+            return state;
+    }
+} 
 
 export function wsEnv(state = null, action) {
     switch (action.type) {
@@ -277,6 +292,7 @@ export const authInfo = combineReducers({
 export const serverStatus = combineReducers({
     licensingInfo,
     matlabStatus,
+    matlabBusyStatus,
     wsEnv,
     isFetching,
     hasFetched,
