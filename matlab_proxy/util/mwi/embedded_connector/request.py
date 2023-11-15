@@ -12,7 +12,7 @@ from matlab_proxy.util import mwi
 
 logger = mwi.logger.get()
 
-from .helpers import get_data_for_ping_request, get_ping_endpoint
+from .helpers import get_data_for_ping_request, get_ping_endpoint, get_data_for_matlab_busy_status_request
 
 
 async def send_request(url: str, data: dict, method: str, headers: dict = None) -> dict:
@@ -111,3 +111,32 @@ async def get_state(mwi_server_url, headers=None):
         pass
 
     return "down"
+
+
+async def get_matlab_busy_status(mwi_server_url, headers=None):
+    """Returns the status of MATLAB via the Embedded Connector (EC), whether it's busy or idle
+
+    Args:
+        port (int): The port on which the embedded connector is running at
+        headers: Headers to include with the request
+    Returns:
+        str: Either "busy" or "idle"
+    """
+    data = get_data_for_matlab_busy_status_request()
+    url = get_ping_endpoint(mwi_server_url)
+
+    try:
+        resp = await send_request(
+            url=url,
+            data=data,
+            method="POST",
+            headers=headers,
+        )
+    except Exception as err:
+        raise err
+
+    matlab_status = resp["messages"]["GetMatlabStatusResponse"][0]["status"]
+    
+    # Response returned by EC is in uppercase ("IDLE/BUSY")
+    # Converted to lowercase before returning to ensure consistency
+    return matlab_status.lower()
