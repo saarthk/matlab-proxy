@@ -211,13 +211,13 @@ function App() {
     // * Status Information
     let overlayContent;
 
-    // Show an impending termination warning if timeout is enabled and the timer has expired
-    if (isTimeoutEnabled && isTimerExpired) {
-        overlayContent = <TerminateWarning />;
-    }
-    else if (dialog) {
+    if (dialog) {
         // TODO Inline confirmation component build
         overlayContent = dialog;
+    }
+    // Show an impending termination warning if timeout is enabled and the timer has expired
+    else if (isTimeoutEnabled && isTimerExpired) {
+        overlayContent = <TerminateWarning />;
     }
     // Give precedence to token auth over licensing info ie. once after token auth is done, show licensing if not provided.
     else if ((!licensingProvided) && hasFetchedServerStatus && (!authEnabled || isAuthenticated)) {
@@ -268,7 +268,7 @@ function App() {
         timerReset();
         console.log("User interaction, resetting timer!");
     };
-
+    
     return (
         <div data-testid="app" className="main"
         onClick={listenForEvents ? handleEvent : undefined}
