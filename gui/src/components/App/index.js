@@ -30,7 +30,10 @@ import {
     selectLicensingInfo,
     selectUseMOS,
     selectUseMRE,
-    selectIdleTimeoutDuration
+    selectIdleTimeoutDurationInMS,
+    selectMatlabBusy,
+    selectMatlabStarting,
+    selectIsTimeoutEnabled,
 } from "../../selectors";
 
 import {
@@ -64,7 +67,10 @@ function App() {
     const useMRE = useSelector(selectUseMRE);
     // Timeout duration is specified in seconds, but useTimeoutFn accepts timeout values in ms.
     // Multiply the timeout value by 1000 to convert to milliseconds.
-    const idleTimeoutDurationInMS = useSelector(selectIdleTimeoutDuration) * 1000;
+    const idleTimeoutDurationInMS = useSelector(selectIdleTimeoutDurationInMS);
+    const matlabBusy = useSelector(selectMatlabBusy);
+    const matlabStarting = useSelector(selectMatlabStarting);
+    const isTimeoutEnabled = useSelector(selectIsTimeoutEnabled);
 
     const baseUrl = useMemo(() => {
         const url = document.URL
@@ -182,17 +188,23 @@ function App() {
     
     let timerCancel, timerReset;
     [, timerCancel, timerReset] = useTimeoutFn(() => {
-        // console.log("Requesting termination");
-        dispatch(fetchTerminateIntegration());
+        if (matlabStarting || (matlabUp && matlabBusy)) {
+            console.log("MATLAB starting/busy, resetting timer!");
+            timerReset();
+        // TODO: add cases for stopping (and other) states of MATLAB
+        } else {
+            dispatch(fetchTerminateIntegration());
+            // timerCancel();
+        }
     }, idleTimeoutDurationInMS);
 
     useEffect(() => {
-        if ((!authEnabled || isAuthenticated) && (idleTimeoutDurationInMS > 0)) {
+        if ((!authEnabled || isAuthenticated) && isTimeoutEnabled) {
             timerReset();
         } else {
             timerCancel();
         }
-    }, [authEnabled, isAuthenticated, idleTimeoutDurationInMS]);
+    }, [authEnabled, isAuthenticated, isTimeoutEnabled]);
 
     // Display one of:
     // * Confirmation
@@ -251,15 +263,16 @@ function App() {
 
     const overlayTrigger = overlayVisible ? null : <OverlayTrigger />;
 
-    let listenForEvents = (!authEnabled || isAuthenticated) && (idleTimeoutDurationInMS > 0);
-    const handleClick = (e) => {
+    let listenForEvents = (!authEnabled || isAuthenticated) && isTimeoutEnabled;
+    const handleEvent = (e) => {
         timerReset();
-        // console.log("Resetting timer!");
+        console.log("User interaction, resetting timer!");
     };
 
     return (
         <div data-testid="app" className="main"
-        onClick={listenForEvents ? handleClick : undefined}
+        onClick={listenForEvents ? handleEvent : undefined}
+        onMouseMove={listenForEvents ? handleEvent : undefined}
         >
             {overlayTrigger}
             {matlabJsd}
