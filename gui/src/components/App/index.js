@@ -13,6 +13,7 @@ import Controls from '../Controls';
 import Information from '../Information';
 import Help from '../Help';
 import Error from '../Error';
+import TerminateWarning from '../TerminateWarning';
 import {
     selectOverlayVisible,
     selectFetchStatusPeriod,
@@ -186,17 +187,12 @@ function App() {
         window.history.replaceState(null, '', `${baseUrl}index.html`);
     }, [dispatch, baseUrl]);
     
+    const [isTimerExpired, setIsTimerExpired] = useState(false);
+
     let timerCancel, timerReset;
     [, timerCancel, timerReset] = useTimeoutFn(() => {
-        if (matlabStarting || (matlabUp && matlabBusy)) {
-            console.log("MATLAB starting/busy, resetting timer!");
-            timerReset();
-        // TODO: add cases for stopping (and other) states of MATLAB
-        } else {
-            dispatch(fetchTerminateIntegration());
-            // timerCancel();
-        }
-    }, idleTimeoutDurationInMS);
+        setIsTimerExpired(true);
+    });
 
     useEffect(() => {
         if ((!authEnabled || isAuthenticated) && isTimeoutEnabled) {
@@ -215,7 +211,11 @@ function App() {
     // * Status Information
     let overlayContent;
 
-    if (dialog) {
+    // Show an impending termination warning if timeout is enabled and the timer has expired
+    if (isTimeoutEnabled && isTimerExpired) {
+        overlayContent = <TerminateWarning />;
+    }
+    else if (dialog) {
         // TODO Inline confirmation component build
         overlayContent = dialog;
     }
