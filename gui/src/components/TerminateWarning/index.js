@@ -16,9 +16,7 @@ function TerminateWarning() {
                     </div >
                     <div className="modal-body">
                         <div className="details">
-                            <div className='flex-container main-flex'>
-                                <div className='flex-item-1'>MATLAB Proxy will self-terminate in 60 seconds</div>
-                            </div>
+                            <div>MATLAB Proxy will self-terminate in 60 seconds</div>
                         </div>
                     </div>
                     <div className="modal-footer">
@@ -27,13 +25,13 @@ function TerminateWarning() {
                                 className='btn'
                                 onClick={null}
                             >
-                                <span className='btn-label'></span>
+                                <span className='btn-label'>Resume Session</span>
                             </button>
                             <button
                                 className='btn'
                                 onClick={null}
                             >
-                                <span className='btn-label'></span>
+                                <span className='btn-label'>Terminate Session</span>
                             </button>
                         </div>
                     </div>
