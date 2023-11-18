@@ -192,15 +192,40 @@ function App() {
     let timerCancel, timerReset;
     [, timerCancel, timerReset] = useTimeoutFn(() => {
         setIsTimerExpired(true);
-    });
+    }, idleTimeoutDurationInMS);
 
+    // Upon mounting the App component,
+    // start the idle timer if user is authenticated and the idle timeout is enabled.
+    // (Otherwise cancel the timer)
     useEffect(() => {
         if ((!authEnabled || isAuthenticated) && isTimeoutEnabled) {
             timerReset();
         } else {
             timerCancel();
         }
+
+        // Cancel the timer once the component unmounts
+        return () => { timerCancel(); }
     }, [authEnabled, isAuthenticated, isTimeoutEnabled]);
+
+    // Buffer timer which runs for a few more seconds once the idle timer has expired
+    let bufferTimeout = 10;
+    let bufferTimerCancel, bufferTimerReset;
+    [, bufferTimerCancel, bufferTimerReset] = useTimeoutFn(() => {
+        dispatch(fetchTerminateIntegration());
+    }, bufferTimeout * 1000);
+
+    useEffect(() => {
+        if (isTimerExpired) {
+            // If idle timer has expired, start the buffer timer
+            bufferTimerReset();
+        } else {
+            bufferTimerCancel();
+        }
+
+        // Cleanup function to ensure buffer timer gets cancelled
+        return () => { bufferTimerCancel(); };
+    }, [isTimerExpired])
 
     // Display one of:
     // * Confirmation
@@ -209,15 +234,21 @@ function App() {
     // * License gatherer
     // * License selector
     // * Status Information
-    let overlayContent;
-
-    if (dialog) {
+    let overlayContent;   
+    
+    // Show an impending termination warning if timeout is enabled and the timer has expired.
+    // This should have the highest precedence, and should draw above all other windows.
+    if (isTimeoutEnabled && isTimerExpired) {
+        overlayContent = <TerminateWarning
+            bufferTimeout={bufferTimeout}
+            resumeCallback={() => {
+                timerReset();
+                setIsTimerExpired(false);
+            }} />;
+    }
+    else if (dialog) {
         // TODO Inline confirmation component build
         overlayContent = dialog;
-    }
-    // Show an impending termination warning if timeout is enabled and the timer has expired
-    else if (isTimeoutEnabled && isTimerExpired) {
-        overlayContent = <TerminateWarning />;
     }
     // Give precedence to token auth over licensing info ie. once after token auth is done, show licensing if not provided.
     else if ((!licensingProvided) && hasFetchedServerStatus && (!authEnabled || isAuthenticated)) {

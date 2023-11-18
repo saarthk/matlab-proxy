@@ -1,8 +1,11 @@
 import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { fetchTerminateIntegration } from '../../actionCreators';
 import './TerminateWarning.css';
 
-function TerminateWarning() {
+function TerminateWarning({ bufferTimeout, resumeCallback }) {
+    const dispatch = useDispatch();
+
     return (
         <div className="modal show"
             id="information"
@@ -16,20 +19,20 @@ function TerminateWarning() {
                     </div >
                     <div className="modal-body">
                         <div className="details">
-                            <div>MATLAB Proxy will self-terminate in 60 seconds</div>
+                            <div>MATLAB Proxy will self-terminate in {bufferTimeout} seconds</div>
                         </div>
                     </div>
                     <div className="modal-footer">
                         <div id="actions">
                             <button
                                 className='btn'
-                                onClick={null}
+                                onClick={resumeCallback}
                             >
                                 <span className='btn-label'>Resume Session</span>
                             </button>
                             <button
                                 className='btn'
-                                onClick={null}
+                                onClick={() => dispatch(fetchTerminateIntegration())}
                             >
                                 <span className='btn-label'>Terminate Session</span>
                             </button>
