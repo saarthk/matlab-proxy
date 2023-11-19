@@ -174,6 +174,21 @@ async def get_status(req):
     Returns:
         JSONResponse: JSONResponse object containing information about the server, MATLAB and MATLAB Licensing.
     """
+    state = req.app["state"]
+
+    if state.is_idle_timeout_enabled:
+        loop = util.get_event_loop()                                         
+                                                                             
+        # Reset the ping timer, to inform the server that front-end is active
+        state.ping_timer.cancel()        
+        # await state.ping_timer    # Await cancellation        
+        state.ping_timer = loop.create_task(state.start_ping_timer())          
+                                                                             
+        # Cancel the idle timer if already running
+        if state.idle_timer is not None:
+            state.idle_timer.cancel()
+            # await state.idle_timer    # Await cancellation
+    
     return await create_status_response(req.app)
 
 
@@ -837,6 +852,13 @@ def main():
 
     # Add signal handlers for the current python process
     loop = util.add_signal_handlers(loop)
+
+    state = app["state"]
+    
+    # If idle timeout is enabled, start the ping timer    
+    if state.is_idle_timeout_enabled:
+        state.ping_timer = loop.create_task(state.start_ping_timer())
+        
     try:
         loop.run_forever()
     except SystemExit:
