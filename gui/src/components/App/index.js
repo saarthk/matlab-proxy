@@ -1,6 +1,6 @@
 // Copyright 2020-2022 The MathWorks, Inc.
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useInterval, useTimeoutFn } from 'react-use';
 import './App.css';
@@ -172,7 +172,9 @@ function App() {
 
     let timerCancel, timerReset;
     [, timerCancel, timerReset] = useTimeoutFn(() => {
+        dispatch(setOverlayVisibility(true));
         setIsTimerExpired(true);
+
     }, idleTimeoutDurationInMS);
 
     // Upon mounting the App component,
@@ -253,7 +255,7 @@ function App() {
             {overlayContent}
         </Overlay>
     ) : null;
-
+    
     // FIXME Until https://github.com/http-party/node-http-proxy/issues/1342
     // is addressed, use a direct URL in development mode. Once that is
     // fixed, the request will be served by the fake MATLAB Embedded Connector
@@ -262,25 +264,46 @@ function App() {
         ? 'http://localhost:31515/index-jsd-cr.html'
         : './index-jsd-cr.html';
 
+    const MatlabJsdIframeRef = useRef(null);
+    
     let matlabJsd = null;
     if(matlabUp){
         matlabJsd = (!authEnabled || isAuthenticated) 
-        ? ( <MatlabJsd url={matlabUrl} /> ) 
+        ? ( <MatlabJsd url={matlabUrl} ref={MatlabJsdIframeRef} /> ) 
         : <img style={{objectFit: 'fill'}}src={blurredBackground} alt='Blurred MATLAB environment'/> 
     }
 
     const overlayTrigger = overlayVisible ? null : <OverlayTrigger />;
 
-    let listenForEvents = (!authEnabled || isAuthenticated) && isTimeoutEnabled;
-    const handleEvent = (e) => {
+    // When to listen for user events?
+    const listenForEvents = (!authEnabled || isAuthenticated) && isTimeoutEnabled;
+
+    // Handler for user events (mouse clicks, key presses etc.)
+    const handleUserInteraction = (e) => {
         timerReset();
         console.log("User interaction, resetting timer!");
     };
     
+    // Add listeners for user events, to the MATLAB JSD iframe
+    useEffect(() => {
+        if (matlabUp && listenForEvents) {
+            MatlabJsdIframeRef.current.contentWindow.addEventListener('click', handleUserInteraction, false);
+            MatlabJsdIframeRef.current.contentWindow.addEventListener('mousemove', handleUserInteraction, false);
+        }
+
+        // Clean up. Necessary!
+        return () => {
+            if (matlabUp && listenForEvents) {
+                MatlabJsdIframeRef.current.contentWindow.removeEventListener('click', handleUserInteraction, false);
+                MatlabJsdIframeRef.current.contentWindow.removeEventListener('mousemove', handleUserInteraction, false);
+            }
+        }
+    }, [matlabUp, listenForEvents]);
+
     return (
         <div data-testid="app" className="main"
-        onClick={listenForEvents ? handleEvent : undefined}
-        onMouseMove={listenForEvents ? handleEvent : undefined}
+        onClick={listenForEvents ? handleUserInteraction : undefined}
+        onMouseMove={listenForEvents ? handleUserInteraction : undefined}
         >
             {overlayTrigger}
             {matlabJsd}

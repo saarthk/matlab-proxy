@@ -351,7 +351,7 @@ async def terminate_app(req):
     await resp.write_eof()
 
     # Gracefully shutdown MATLAB
-    await state.stop_matlab()
+    # await state.stop_matlab()
     
     loop = util.get_event_loop()
     # Run the current batch of callbacks and then exit.
