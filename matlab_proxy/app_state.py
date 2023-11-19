@@ -99,6 +99,41 @@ class AppState:
         # This variable can be either "up" or "down"
         self.embedded_connector_state = "down"
 
+        # Get idle timeout duration
+        # Idle timeout duration is the maximum duration for which the user/MATLAB can remain inactive
+        self.idle_timeout_duration = int(self.settings["mwi_idle_timeout"])
+        self.is_idle_timeout_enabled = self.idle_timeout_duration > 0
+
+        self.ping_timer = None
+        self.idle_timer = None
+
+    async def start_ping_timer(self):
+        try:
+            await asyncio.sleep(15)
+            
+            loop = util.get_event_loop()
+            self.idle_timer = loop.create_task(self.start_idle_timer())
+        except asyncio.CancelledError:
+            # print("Cancelling ping timer!")
+            raise
+
+    async def start_idle_timer(self):
+        try:
+            # print("Starting idle timer!")
+            await asyncio.sleep(self.idle_timeout_duration)
+            
+            loop = util.get_event_loop()
+        
+            matlab_busy_status = await self.get_matlab_busy_status()
+            is_matlab_busy = matlab_busy_status == "busy"
+            
+            if is_matlab_busy:
+                self.idle_timer = loop.create_task(self.start_idle_timer())
+            else:
+                loop.stop()
+        except asyncio.CancelledError:
+            raise
+
     def __get_cached_config_file(self):
         """Get the cached config file
 
