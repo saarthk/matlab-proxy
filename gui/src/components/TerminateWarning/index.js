@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { fetchTerminateIntegration } from '../../actionCreators';
+import { fetchTerminateIntegration, setOverlayVisibility } from '../../actionCreators';
 import './TerminateWarning.css';
 
 function TerminateWarning({ bufferTimeout, resumeCallback }) {
@@ -26,7 +26,10 @@ function TerminateWarning({ bufferTimeout, resumeCallback }) {
                         <div id="actions">
                             <button
                                 className='btn'
-                                onClick={resumeCallback}
+                                onClick={() => {
+                                    resumeCallback();
+                                    dispatch(setOverlayVisibility(false));
+                                }}
                             >
                                 <span className='btn-label'>Resume Session</span>
                             </button>
