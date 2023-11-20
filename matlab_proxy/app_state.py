@@ -119,7 +119,7 @@ class AppState:
 
     async def start_idle_timer(self):
         try:
-            # print("Starting idle timer!")
+            logger.info(f"MATLAB Proxy will self terminate in {self.idle_timeout_duration} seconds")
             await asyncio.sleep(self.idle_timeout_duration)
             
             loop = util.get_event_loop()
@@ -132,6 +132,7 @@ class AppState:
             else:
                 loop.stop()
         except asyncio.CancelledError:
+            logger.info("Idle timeout interrupted")
             raise
 
     def __get_cached_config_file(self):
