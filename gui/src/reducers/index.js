@@ -22,6 +22,8 @@ import {
     RECEIVE_ENV_CONFIG,
     SET_AUTH_STATUS,
     SET_AUTH_TOKEN,
+    RECEIVE_MATLAB_BUSY_STATUS,
+    REQUEST_MATLAB_BUSY_STATUS,
 } from '../actions';
 
 // Stores info on whether token authentication enabled on the backend. 
@@ -171,17 +173,13 @@ export function supportedMatlabVersions(state = null, action) {
             return state;
     }
 }
-export function matlabBusyStatus(state = 'na', action) {
+export function matlabBusyStatus(state = null, action) {
     switch (action.type) {
-        case RECEIVE_SERVER_STATUS:
-        case RECEIVE_SET_LICENSING:
-        case RECEIVE_TERMINATE_INTEGRATION:
+        case RECEIVE_MATLAB_BUSY_STATUS:
+            return action.status.busyStatus;
+        // busy status has no meaning if MATLAB is not running
         case RECEIVE_STOP_MATLAB:
-        case RECEIVE_START_MATLAB:
-            return action.status.matlab.busyStatus;
-        case REQUEST_STOP_MATLAB:
-        case REQUEST_START_MATLAB:
-            return action.status;
+            return null;
         default:
             return state;
     }
@@ -208,6 +206,7 @@ export function isFetching(state = false, action) {
         case REQUEST_STOP_MATLAB:
         case REQUEST_START_MATLAB:
         case REQUEST_ENV_CONFIG:
+        case REQUEST_MATLAB_BUSY_STATUS:
             return true;
         case RECEIVE_SERVER_STATUS:
         case RECEIVE_SET_LICENSING:
@@ -216,6 +215,7 @@ export function isFetching(state = false, action) {
         case RECEIVE_START_MATLAB:
         case RECEIVE_ERROR:
         case RECEIVE_ENV_CONFIG:
+        case RECEIVE_MATLAB_BUSY_STATUS:
             return false;
         default:
             return state;
@@ -338,7 +338,6 @@ export const matlab = combineReducers({
 export const serverStatus = combineReducers({
     licensingInfo,
     matlabStatus,
-    matlabBusyStatus,
     wsEnv,
     isFetching,
     hasFetched,
@@ -360,4 +359,5 @@ export default combineReducers({
     authentication,
     matlab,
     idleTimeoutDuration,
+    matlabBusyStatus,
 });
