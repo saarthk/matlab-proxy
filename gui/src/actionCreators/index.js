@@ -20,7 +20,9 @@ import {
     RECEIVE_ERROR,
     RECEIVE_ENV_CONFIG,
     SET_AUTH_STATUS,
-    SET_AUTH_TOKEN
+    SET_AUTH_TOKEN,
+    REQUEST_MATLAB_BUSY_STATUS,
+    RECEIVE_MATLAB_BUSY_STATUS,
 } from '../actions';
 import { selectMatlabPending } from '../selectors';
 import sha256 from 'crypto-js/sha256';
@@ -166,6 +168,19 @@ export function receiveError(error, statusCode) {
         type: RECEIVE_ERROR,
         error,
         statusCode
+    }
+}
+
+export function requestMatlabBusyStatus() {
+    return {
+        type: REQUEST_MATLAB_BUSY_STATUS,
+    }
+}
+
+export function receiveMatlabBusyStatus(status) {
+    return {
+        type: RECEIVE_MATLAB_BUSY_STATUS,
+        status
     }
 }
 
@@ -361,5 +376,15 @@ export function fetchStartMatlab() {
         const data = await response.json();
         dispatch(receiveStartMatlab(data));
 
+    }
+}
+
+export function fetchMatlabBusyStatus() {
+    return async function (dispatch, getState) {
+
+        dispatch(requestMatlabBusyStatus());
+        const response = await fetchWithTimeout(dispatch, './get_matlab_busy_status', {}, 10000);
+        const data = await response.json();
+        dispatch(receiveMatlabBusyStatus(data));
     }
 }

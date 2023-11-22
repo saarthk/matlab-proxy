@@ -121,19 +121,23 @@ class AppState:
     async def start_idle_timer(self):
         try:
             logger.info(f"MATLAB Proxy will self terminate in {self.idle_timeout_duration} seconds")
+            # print("Starting idle timer")
             await asyncio.sleep(self.idle_timeout_duration)
             
             loop = util.get_event_loop()
+
+            matlab_state = await self.get_matlab_state()
+            is_matlab_starting = matlab_state == "starting"
         
             matlab_busy_status = await self.get_matlab_busy_status()
             is_matlab_busy = matlab_busy_status == "busy"
             
-            if is_matlab_busy:
+            if is_matlab_starting or is_matlab_busy:
                 self.idle_timer = loop.create_task(self.start_idle_timer())
             else:
                 loop.stop()
         except asyncio.CancelledError:
-            logger.info("Idle timeout interrupted")
+            # print("Idle timer interrupted")
             raise
 
     def __get_cached_licensing_file(self):
@@ -1312,13 +1316,13 @@ class AppState:
             String: Operational status of MATLAB. Returns busy, idle or na
         """
 
-        # MATLAB can either be "busy", "idle" or "na", depending on whether the MVM thread is executing a task or not.
+        # MATLAB can either be "busy", "idle" or None, depending on whether the MVM thread is executing a task or not.
         # busy and idle responses are returned only when MATLAB is up (as determined by get_matlab_state).
         # In all other cases, "na" is returned.
 
         current_matlab_state = await self.get_matlab_state()
         if not current_matlab_state == "up":
-            return "na"
+            return None
 
         headers = (
             {self.settings["mwi_auth_token_name"]: self.settings["mwi_auth_token_hash"]}

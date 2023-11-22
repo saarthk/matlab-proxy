@@ -16,7 +16,7 @@ export const selectAuthEnabled = state => state.authInfo.authEnabled;
 export const selectAuthToken = state => state.authInfo.authToken;
 export const selectIsAuthenticated = state => state.authInfo.authStatus === true;
 export const selectIdleTimeoutDuration = state => state.idleTimeoutDuration;
-export const selectMatlabBusyStatus = state => state.serverStatus.matlabBusyStatus;
+export const selectMatlabBusyStatus = state => state.matlabBusyStatus;
 
 export const selectTriggerPosition = createSelector(
     state => state.triggerPosition,

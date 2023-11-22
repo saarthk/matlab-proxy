@@ -108,7 +108,6 @@ async def create_status_response(app, loadUrl=None):
         {
             "matlab": {
                 "status": await state.get_matlab_state(),
-                "busyStatus": await state.get_matlab_busy_status(),
             },
             "licensing": marshal_licensing_info(state.licensing),
             "loadUrl": loadUrl,
@@ -378,32 +377,23 @@ async def terminate_app(req):
     # aiohttp web contracts, even though the response has already been sent
     return resp
 
-@token_auth.authenticate_access_decorator
-async def termination_integration_delete(req):
-    """API Endpoint to terminate the Integration and shutdown the server.
+# @token_auth.authenticate_access_decorator
+# Explicitly disabling authentication for this end-point, as authenticity is checked by the redirected endpoint.
+async def get_matlab_busy_status(req):
+    """API Endpoint to get status of the MVM, whether it is busy or idle
 
     Args:
         req (HTTPRequest): HTTPRequest Object
     """
-    logger.debug("Terminating the integration...")
+
     state = req.app["state"]
+    matlab_busy_status = await state.get_matlab_busy_status()
 
-    # Send response manually because this has to happen before the application exits
-    res = await create_status_response(req.app, "../")
-    await res.prepare(req)
-    await res.write_eof()
-
-    logger.debug("Shutting down the server...")
-    # End termination with 0 exit code to indicate intentional termination
-    await req.app.shutdown()
-    await req.app.cleanup()
-    """When testing with pytest, its not possible to catch sys.exit(0) using the construct
-    'with pytest.raises()', there by causing the test : test_termination_integration_delete()
-    to fail. Inorder to avoid this, adding the below if condition to check to skip sys.exit(0) when testing
-    """
-    logger.debug("Exiting with return code 0")
-    if not mwi_env.is_testing_mode_enabled():
-        sys.exit(0)
+    return web.json_response(
+        {
+            "busyStatus": await state.get_matlab_busy_status(),
+        }
+    )
 
 
 # @token_auth.authenticate_access_decorator
@@ -820,6 +810,9 @@ def create_app(config_name=matlab_proxy.get_default_config_name()):
     )
     app.router.add_route(
         "DELETE", f"{base_url}/terminate_integration", terminate_app
+    )
+    app.router.add_route(
+        "GET", f"{base_url}/get_matlab_busy_status", get_matlab_busy_status
     )
     app.router.add_route("*", f"{base_url}/", root_redirect)
     app.router.add_route("*", f"{base_url}", root_redirect)

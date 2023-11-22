@@ -41,6 +41,7 @@ import {
     fetchEnvConfig,
     fetchTerminateIntegration,
     updateAuthStatus,
+    fetchMatlabBusyStatus,
 } from '../../actionCreators';
 import blurredBackground from './MATLAB-env-blur.png';
 import EntitlementSelector from "../EntitlementSelector";
@@ -65,7 +66,7 @@ function App() {
     // Timeout duration is specified in seconds, but useTimeoutFn accepts timeout values in ms.
     // Multiply the timeout value by 1000 to convert to milliseconds.
     const idleTimeoutDurationInMS = useSelector(selectIdleTimeoutDurationInMS);
-    const matlabBusy = useSelector(selectMatlabBusy);
+    const isMatlabBusy = useSelector(selectMatlabBusy);
     const matlabStarting = useSelector(selectMatlabStarting);
     const isTimeoutEnabled = useSelector(selectIsTimeoutEnabled);
 
@@ -168,13 +169,19 @@ function App() {
         window.history.replaceState(null, '', `${baseUrl}index.html`); 
     }, [dispatch, baseUrl]);
     
-    const [isTimerExpired, setIsTimerExpired] = useState(false);
+    const [isIdleTimerExpired, setisIdleTimerExpired] = useState(false);
 
-    let timerCancel, timerReset;
-    [, timerCancel, timerReset] = useTimeoutFn(() => {
-        dispatch(setOverlayVisibility(true));
-        setIsTimerExpired(true);
+    let idleTimerCancel, idleTimerReset;
+    [, idleTimerCancel, idleTimerReset] = useTimeoutFn(() => {
+        console.log("Fetching MATLAB busy status");
+        dispatch(fetchMatlabBusyStatus());
 
+        if (isMatlabBusy) {
+            idleTimerReset();
+        } else {
+            dispatch(setOverlayVisibility(true));
+            setisIdleTimerExpired(true);
+        }
     }, idleTimeoutDurationInMS);
 
     // Upon mounting the App component,
@@ -182,13 +189,13 @@ function App() {
     // (Otherwise cancel the timer)
     useEffect(() => {
         if ((!authEnabled || isAuthenticated) && isTimeoutEnabled) {
-            timerReset();
+            idleTimerReset();
         } else {
-            timerCancel();
+            idleTimerCancel();
         }
 
         // Cancel the timer once the component unmounts
-        return () => { timerCancel(); }
+        return () => { idleTimerCancel(); }
     }, [authEnabled, isAuthenticated, isTimeoutEnabled]);
 
     // Buffer timer which runs for a few more seconds once the idle timer has expired
@@ -199,7 +206,7 @@ function App() {
     }, bufferTimeout * 1000);
 
     useEffect(() => {
-        if (isTimerExpired) {
+        if (isIdleTimerExpired) {
             // If idle timer has expired, start the buffer timer
             bufferTimerReset();
         } else {
@@ -208,7 +215,7 @@ function App() {
 
         // Cleanup function to ensure buffer timer gets cancelled
         return () => { bufferTimerCancel(); };
-    }, [isTimerExpired])
+    }, [isIdleTimerExpired])
 
     // Display one of:
     // * Confirmation
@@ -221,12 +228,12 @@ function App() {
     
     // Show an impending termination warning if timeout is enabled and the timer has expired.
     // This should have the highest precedence, and should draw above all other windows.
-    if (isTimeoutEnabled && isTimerExpired) {
+    if (isTimeoutEnabled && isIdleTimerExpired) {
         overlayContent = <TerminateWarning
             bufferTimeout={bufferTimeout}
             resumeCallback={() => {
-                timerReset();
-                setIsTimerExpired(false);
+                idleTimerReset();
+                setisIdleTimerExpired(false);
             }} />;
     }
     else if (dialog) {
@@ -280,8 +287,8 @@ function App() {
 
     // Handler for user events (mouse clicks, key presses etc.)
     const handleUserInteraction = (e) => {
-        timerReset();
-        console.log("User interaction, resetting timer!");
+        idleTimerReset();
+        // console.log("User interaction, resetting timer!");
     };
     
     // Add listeners for user events, to the MATLAB JSD iframe
