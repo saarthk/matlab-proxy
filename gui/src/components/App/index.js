@@ -33,6 +33,7 @@ import {
   selectMatlabBusy,
   selectMatlabStarting,
   selectIsTimeoutEnabled,
+  selectMatlabStopping,
 } from "../../selectors";
 
 import {
@@ -67,7 +68,8 @@ function App() {
     // Multiply the timeout value by 1000 to convert to milliseconds.
     const idleTimeoutDurationInMS = useSelector(selectIdleTimeoutDurationInMS);
     const isMatlabBusy = useSelector(selectMatlabBusy);
-    const matlabStarting = useSelector(selectMatlabStarting);
+    const isMatlabStarting = useSelector(selectMatlabStarting);
+    const isMatlabStopping = useSelector(selectMatlabStopping);
     const isTimeoutEnabled = useSelector(selectIsTimeoutEnabled);
 
     const baseUrl = useMemo(() => {
@@ -172,17 +174,23 @@ function App() {
     const [isIdleTimerExpired, setisIdleTimerExpired] = useState(false);
 
     let idleTimerCancel, idleTimerReset;
-    [, idleTimerCancel, idleTimerReset] = useTimeoutFn(() => {
-        console.log("Fetching MATLAB busy status");
-        dispatch(fetchMatlabBusyStatus());
+    
+    const terminationFn = () => {
+        if (!(isMatlabStarting || isMatlabStopping)) {
+            dispatch(fetchMatlabBusyStatus());
 
-        if (isMatlabBusy) {
-            idleTimerReset();
+            if (isMatlabBusy) {
+                idleTimerReset();
+            } else {
+                dispatch(setOverlayVisibility(true));
+                setisIdleTimerExpired(true);
+            }
         } else {
-            dispatch(setOverlayVisibility(true));
-            setisIdleTimerExpired(true);
+            idleTimerReset();
         }
-    }, idleTimeoutDurationInMS);
+    }
+
+    [, idleTimerCancel, idleTimerReset] = useTimeoutFn(terminationFn, idleTimeoutDurationInMS);
 
     // Upon mounting the App component,
     // start the idle timer if user is authenticated and the idle timeout is enabled.
