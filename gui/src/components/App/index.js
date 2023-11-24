@@ -204,7 +204,7 @@ function App() {
 
         // Cancel the timer once the component unmounts
         return () => { idleTimerCancel(); }
-    }, [authEnabled, isAuthenticated, isTimeoutEnabled]);
+    }, [authEnabled, idleTimerCancel, idleTimerReset, isAuthenticated, isTimeoutEnabled]);
 
     // Buffer timer which runs for a few more seconds once the idle timer has expired
     let bufferTimeout = 10;
@@ -223,7 +223,7 @@ function App() {
 
         // Cleanup function to ensure buffer timer gets cancelled
         return () => { bufferTimerCancel(); };
-    }, [isIdleTimerExpired])
+    }, [bufferTimerCancel, bufferTimerReset, isIdleTimerExpired])
 
     // Display one of:
     // * Confirmation
@@ -294,26 +294,28 @@ function App() {
     const listenForEvents = (!authEnabled || isAuthenticated) && isTimeoutEnabled;
 
     // Handler for user events (mouse clicks, key presses etc.)
-    const handleUserInteraction = (e) => {
+    const handleUserInteraction = useCallback((e) => {
         idleTimerReset();
         // console.log("User interaction, resetting timer!");
-    };
+    }, [idleTimerReset]);
     
     // Add listeners for user events, to the MATLAB JSD iframe
     useEffect(() => {
+        const MatlabJsdIframeDom = MatlabJsdIframeRef.current;
+
         if (matlabUp && listenForEvents) {
-            MatlabJsdIframeRef.current.contentWindow.addEventListener('click', handleUserInteraction, false);
-            MatlabJsdIframeRef.current.contentWindow.addEventListener('mousemove', handleUserInteraction, false);
+            MatlabJsdIframeDom.contentWindow.addEventListener('click', handleUserInteraction, false);
+            MatlabJsdIframeDom.contentWindow.addEventListener('mousemove', handleUserInteraction, false);
         }
 
         // Clean up. Necessary!
         return () => {
-            if (matlabUp && listenForEvents) {
-                MatlabJsdIframeRef.current.contentWindow.removeEventListener('click', handleUserInteraction, false);
-                MatlabJsdIframeRef.current.contentWindow.removeEventListener('mousemove', handleUserInteraction, false);
+            if (MatlabJsdIframeDom && matlabUp && listenForEvents) {
+                MatlabJsdIframeDom.contentWindow.removeEventListener('click', handleUserInteraction, false);
+                MatlabJsdIframeDom.contentWindow.removeEventListener('mousemove', handleUserInteraction, false);
             }
         }
-    }, [matlabUp, listenForEvents]);
+    }, [matlabUp, listenForEvents, handleUserInteraction]);
 
     return (
         <div data-testid="app" className="main"

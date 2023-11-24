@@ -102,7 +102,11 @@ class AppState:
 
         # Get idle timeout duration
         # Idle timeout duration is the maximum duration for which the user/MATLAB can remain inactive
-        self.idle_timeout_duration = int(self.settings["mwi_idle_timeout"])
+        try:
+            self.idle_timeout_duration = int(self.settings["mwi_idle_timeout"])
+        except KeyError:
+            self.idle_timeout_duration = -1
+
         self.is_idle_timeout_enabled = self.idle_timeout_duration > 0
 
         self.ping_timer = None
@@ -111,7 +115,7 @@ class AppState:
     async def start_ping_timer(self):
         try:
             await asyncio.sleep(15)
-            
+
             loop = util.get_event_loop()
             self.idle_timer = loop.create_task(self.start_idle_timer())
         except asyncio.CancelledError:
@@ -120,18 +124,20 @@ class AppState:
 
     async def start_idle_timer(self):
         try:
-            logger.info(f"MATLAB Proxy will self terminate in {self.idle_timeout_duration} seconds")
+            logger.info(
+                f"MATLAB Proxy will self terminate in {self.idle_timeout_duration} seconds"
+            )
             # print("Starting idle timer")
             await asyncio.sleep(self.idle_timeout_duration)
-            
+
             loop = util.get_event_loop()
 
             matlab_state = await self.get_matlab_state()
             is_matlab_starting = matlab_state == "starting"
-        
+
             matlab_busy_status = await self.get_matlab_busy_status()
             is_matlab_busy = matlab_busy_status == "busy"
-            
+
             if is_matlab_starting or is_matlab_busy:
                 self.idle_timer = loop.create_task(self.start_idle_timer())
             else:
@@ -1336,4 +1342,3 @@ class AppState:
         )
 
         return mvm_op_status
-

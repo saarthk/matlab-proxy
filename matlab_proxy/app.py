@@ -156,8 +156,8 @@ async def get_env_config(req):
     config["authStatus"] = True if await token_auth.authenticate_request(req) else False
 
     # Send timeout duration for the idle timer as part of the response
-    config["idleTimeoutDuration"] = state.settings["mwi_idle_timeout"]
-    
+    config["idleTimeoutDuration"] = state.idle_timeout_duration
+
     return web.json_response(config)
 
 
@@ -176,18 +176,18 @@ async def get_status(req):
     state = req.app["state"]
 
     if state.is_idle_timeout_enabled:
-        loop = util.get_event_loop()                                         
-                                                                             
+        loop = util.get_event_loop()
+
         # Reset the ping timer, to inform the server that front-end is active
-        state.ping_timer.cancel()        
-        # await state.ping_timer    # Await cancellation        
-        state.ping_timer = loop.create_task(state.start_ping_timer())          
-                                                                             
+        state.ping_timer.cancel()
+        # await state.ping_timer    # Await cancellation
+        state.ping_timer = loop.create_task(state.start_ping_timer())
+
         # Cancel the idle timer if already running
         if state.idle_timer is not None:
             state.idle_timer.cancel()
             # await state.idle_timer    # Await cancellation
-    
+
     return await create_status_response(req.app)
 
 
@@ -349,6 +349,7 @@ async def licensing_info_delete(req):
 
     return await create_status_response(req.app)
 
+
 @token_auth.authenticate_access_decorator
 async def terminate_app(req):
     """API Endpoint to terminate the Integration and shutdown the server.
@@ -366,7 +367,7 @@ async def terminate_app(req):
 
     # Gracefully shutdown MATLAB
     # await state.stop_matlab()
-    
+
     loop = util.get_event_loop()
     # Run the current batch of callbacks and then exit.
     # This completes the loop.run_forever() blocking call, and subsequent code
@@ -376,6 +377,7 @@ async def terminate_app(req):
     # web.Response object must be returned. This is required by
     # aiohttp web contracts, even though the response has already been sent
     return resp
+
 
 # @token_auth.authenticate_access_decorator
 # Explicitly disabling authentication for this end-point, as authenticity is checked by the redirected endpoint.
@@ -808,9 +810,7 @@ def create_app(config_name=matlab_proxy.get_default_config_name()):
     app.router.add_route(
         "DELETE", f"{base_url}/set_licensing_info", licensing_info_delete
     )
-    app.router.add_route(
-        "DELETE", f"{base_url}/terminate_integration", terminate_app
-    )
+    app.router.add_route("DELETE", f"{base_url}/terminate_integration", terminate_app)
     app.router.add_route(
         "GET", f"{base_url}/get_matlab_busy_status", get_matlab_busy_status
     )
@@ -847,11 +847,11 @@ def main():
     loop = util.add_signal_handlers(loop)
 
     state = app["state"]
-    
-    # If idle timeout is enabled, start the ping timer    
+
+    # If idle timeout is enabled, start the ping timer
     if state.is_idle_timeout_enabled:
         state.ping_timer = loop.create_task(state.start_ping_timer())
-        
+
     try:
         loop.run_forever()
     except SystemExit:

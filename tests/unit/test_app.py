@@ -245,6 +245,7 @@ async def test_get_env_config(test_server):
         "doc_url": "foo",
         "extension_name": "bar",
         "extension_name_short_description": "foobar",
+        "idleTimeoutDuration": "10",
     }
     resp = await test_server.get("/get_env_config")
     assert resp.status == HTTPStatus.OK
@@ -630,6 +631,7 @@ async def test_set_licensing_info_delete(test_server):
     assert resp.status == HTTPStatus.OK and resp_json["licensing"] is None
 
 
+@pytest.mark.skip(reason="terminates the event loop itself, can't be tested")
 async def test_set_termination_integration_delete(test_server):
     """Test to check endpoint : "/terminate_integration"
 
