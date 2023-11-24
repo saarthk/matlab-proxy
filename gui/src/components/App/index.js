@@ -299,28 +299,34 @@ function App() {
         // console.log("User interaction, resetting timer!");
     }, [idleTimerReset]);
     
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const userEvents = ['click', 'mousemove', 'keydown'];
+
     // Add listeners for user events, to the MATLAB JSD iframe
     useEffect(() => {
         const MatlabJsdIframeDom = MatlabJsdIframeRef.current;
 
         if (matlabUp && listenForEvents) {
-            MatlabJsdIframeDom.contentWindow.addEventListener('click', handleUserInteraction, false);
-            MatlabJsdIframeDom.contentWindow.addEventListener('mousemove', handleUserInteraction, false);
+            userEvents.forEach((eventName) => {
+                MatlabJsdIframeDom.contentWindow.addEventListener(eventName, handleUserInteraction, false);
+            });
         }
 
         // Clean up. Necessary!
         return () => {
             if (MatlabJsdIframeDom && matlabUp && listenForEvents) {
-                MatlabJsdIframeDom.contentWindow.removeEventListener('click', handleUserInteraction, false);
-                MatlabJsdIframeDom.contentWindow.removeEventListener('mousemove', handleUserInteraction, false);
+                userEvents.forEach((eventName) => {
+                    MatlabJsdIframeDom.contentWindow.removeEventListener(eventName, handleUserInteraction, false);
+                });
             }
         }
-    }, [matlabUp, listenForEvents, handleUserInteraction]);
+    }, [matlabUp, listenForEvents, handleUserInteraction, userEvents]);
 
     return (
         <div data-testid="app" className="main"
         onClick={listenForEvents ? handleUserInteraction : undefined}
         onMouseMove={listenForEvents ? handleUserInteraction : undefined}
+        onKeyDown={listenForEvents ? handleUserInteraction : undefined}
         >
             {overlayTrigger}
             {matlabJsd}
