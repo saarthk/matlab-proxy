@@ -1,6 +1,6 @@
 // Copyright (c) 2020-2022 The MathWorks, Inc.
 
-import React, { forwardRef, useEffect, useRef } from 'react';
+import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import './MatlabJsd.css';
 

@@ -12,7 +12,7 @@ describe('MatlabJsd Component', () => {
   it('throws console.error when rendered without required prop-type', () => {
     // Mocking console.error to do nothing.
     const errorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
-    const errorMessage = 'The prop `url` is marked as required in `MatlabJsd`, but its value is `undefined`.'
+    const errorMessage = 'The prop `url` is marked as required in `ForwardRef`, but its value is `undefined`.'
 
     const { queryByTitle } = render(<MatlabJsd />);
 
