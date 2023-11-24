@@ -192,7 +192,7 @@ function App() {
         } else {
             timerCancel();
         }
-    }, [authEnabled, isAuthenticated]);
+    }, [authEnabled, isAuthenticated, idleTimeoutDurationInMS]);
 
     // Display one of:
     // * Confirmation
@@ -251,10 +251,10 @@ function App() {
 
     const overlayTrigger = overlayVisible ? null : <OverlayTrigger />;
 
-    let listenForEvents = (!authEnabled || isAuthenticated);
+    let listenForEvents = (!authEnabled || isAuthenticated) && (idleTimeoutDurationInMS > 0);
     const handleClick = (e) => {
         timerReset();
-        console.log("Resetting timer!");
+        // console.log("Resetting timer!");
     };
 
     return (
