@@ -321,7 +321,9 @@ def get_server_settings(config_name):
         "ssl_context": get_ssl_context(
             ssl_cert_file=ssl_cert_file, ssl_key_file=ssl_key_file
         ),
-        "mwi_idle_timeout": os.getenv(mwi_env.get_env_idle_timeout(), -1)
+        # If env variable for idle timeout duration has been specified, use it.
+        # Otherwise use -1 as the default value (indicating that idle timeout is disabled).
+        "mwi_idle_timeout": os.getenv(mwi_env.get_env_idle_timeout(), -1),
     }
 
 

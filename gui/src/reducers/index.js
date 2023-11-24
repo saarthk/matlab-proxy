@@ -294,4 +294,5 @@ export default combineReducers({
     error,
     envConfig,
     authInfo,
+    idleTimeoutDuration,
 });
