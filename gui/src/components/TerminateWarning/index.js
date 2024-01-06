@@ -1,3 +1,8 @@
+// Dialog box that pops up when the main timer has expired.
+// The user can either resume or terminate the current session of matlab proxy.
+// In case of no interaction, the application will automatically terminate after
+// 'bufferTimeout' seconds (which is given as a prop to the component) 
+
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { fetchTerminateIntegration, setOverlayVisibility } from '../../actionCreators';

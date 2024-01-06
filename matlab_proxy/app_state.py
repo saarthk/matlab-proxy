@@ -111,9 +111,21 @@ class AppState:
         self.ping_timer = None
         self.idle_timer = None
 
+    # This is a background timer, called the ping timer, that runs for a certain duration (60 seconds currently).
+    # It provides a mechanism to check the status of the front end.
+    # While it does not query the front end directly to check if it's up or not, 
+    # the unavailabilty can be inferred from a lack of pings (get_status requests).
+    
+    # If the front end is active, the get_status request handler restarts any running instances
+    # of this timer. Restarting this timer is a lightweight operation and does not incur any major overhead
+    # in the response time of the handler.
+
+    # If the ping timer expires, we can conclude that the front end is unavailable
+    # It triggers a second timer, called the idle timer, which then proceeds to actually terminate the current session
+    # (if certain conditions hold).
     async def start_ping_timer(self):
         try:
-            await asyncio.sleep(15)
+            await asyncio.sleep(60)
 
             loop = util.get_event_loop()
             self.idle_timer = loop.create_task(self.start_idle_timer())
