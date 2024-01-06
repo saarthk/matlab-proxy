@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+// useTimeoutFn hook is used to fire an event/callback when the timer has expired after
+// a certain duration
 import { useInterval, useTimeoutFn } from 'react-use';
 import './App.css';
 import Confirmation from '../Confirmation';
@@ -64,8 +66,6 @@ function App() {
     const isAuthenticated = useSelector(selectIsAuthenticated)
     const authEnabled = useSelector(selectAuthEnabled);
     const licensingInfo = useSelector(selectLicensingInfo);
-    // Timeout duration is specified in seconds, but useTimeoutFn accepts timeout values in ms.
-    // Multiply the timeout value by 1000 to convert to milliseconds.
     const idleTimeoutDurationInMS = useSelector(selectIdleTimeoutDurationInMS);
     const isMatlabBusy = useSelector(selectMatlabBusy);
     const isMatlabStarting = useSelector(selectMatlabStarting);
@@ -171,18 +171,30 @@ function App() {
         window.history.replaceState(null, '', `${baseUrl}index.html`); 
     }, [dispatch, baseUrl]);
     
+    // state variable to query and modify timer status
+    // this is the main timer which will expire after a specified window of inactivity
+    // can be set by specifying the environment variable MWI_IDLE_TIMEOUT
     const [isIdleTimerExpired, setisIdleTimerExpired] = useState(false);
 
+    // handles for the cancel and reset functions, as returned by the useTimeoutFn hook
     let idleTimerCancel, idleTimerReset;
     
+    // callback that will fire once the main timer expires
     const terminationFn = () => {
+        // we need to check if MATLAB is starting or stopping.
+        // ideally, a timeout should NOT occur if MATLAB is starting or stopping
         if (!(isMatlabStarting || isMatlabStopping)) {
             dispatch(fetchMatlabBusyStatus());
 
             if (isMatlabBusy) {
+                // reset the timer if MATLAB is busy
                 idleTimerReset();
             } else {
+                // once the timer has expired, make the overlay visible (if it's not already).
+                // this will allow the Termination Warning dialog box to appear, informing
+                // the user of an impending termination
                 dispatch(setOverlayVisibility(true));
+                // set the expiration state to true
                 setisIdleTimerExpired(true);
             }
         } else {
@@ -190,11 +202,13 @@ function App() {
         }
     }
 
+    // create a useTimeoutFn hook, setup the expiration duration and the callback.
+    // assign cancel and reset variables to the function handles returned by the hook
     [, idleTimerCancel, idleTimerReset] = useTimeoutFn(terminationFn, idleTimeoutDurationInMS);
 
-    // Upon mounting the App component,
-    // start the idle timer if user is authenticated and the idle timeout is enabled.
-    // (Otherwise cancel the timer)
+    // upon mounting the App component, start the idle timer if user is authenticated 
+    // and the idle timeout is enabled. otherwise cancel the timer.
+    // this is done to prevent a rogue user from terminating the session via a curl request
     useEffect(() => {
         if ((!authEnabled || isAuthenticated) && isTimeoutEnabled) {
             idleTimerReset();
@@ -202,11 +216,13 @@ function App() {
             idleTimerCancel();
         }
 
-        // Cancel the timer once the component unmounts
+        // cancel the timer once the component unmounts
         return () => { idleTimerCancel(); }
     }, [authEnabled, idleTimerCancel, idleTimerReset, isAuthenticated, isTimeoutEnabled]);
 
-    // Buffer timer which runs for a few more seconds once the idle timer has expired
+    // buffer timer which runs for a few more seconds once the idle timer has expired.
+    // this timer will run after the main timer to allow the Termination Warning
+    // dialog box to appear on the screen, such that the user is informed of an impending termination
     let bufferTimeout = 10;
     let bufferTimerCancel, bufferTimerReset;
     [, bufferTimerCancel, bufferTimerReset] = useTimeoutFn(() => {
@@ -215,13 +231,13 @@ function App() {
 
     useEffect(() => {
         if (isIdleTimerExpired) {
-            // If idle timer has expired, start the buffer timer
+            // if idle timer has expired, start the buffer timer
             bufferTimerReset();
         } else {
             bufferTimerCancel();
         }
 
-        // Cleanup function to ensure buffer timer gets cancelled
+        // cleanup function to ensure buffer timer gets cancelled once
         return () => { bufferTimerCancel(); };
     }, [bufferTimerCancel, bufferTimerReset, isIdleTimerExpired])
 
@@ -234,8 +250,8 @@ function App() {
     // * Status Information
     let overlayContent;   
     
-    // Show an impending termination warning if timeout is enabled and the timer has expired.
-    // This should have the highest precedence, and should draw above all other windows.
+    // show an impending termination warning if timeout is enabled and the timer has expired.
+    // it should have the highest precedence, and should draw above all other windows.
     if (isTimeoutEnabled && isIdleTimerExpired) {
         overlayContent = <TerminateWarning
             bufferTimeout={bufferTimeout}
@@ -278,7 +294,8 @@ function App() {
     const matlabUrl = process.env.NODE_ENV === 'development'
         ? 'http://localhost:31515/index-jsd-cr.html'
         : './index-jsd-cr.html';
-
+    
+    // Reference to pass to MatlabJSD component
     const MatlabJsdIframeRef = useRef(null);
     
     let matlabJsd = null;
@@ -290,10 +307,10 @@ function App() {
 
     const overlayTrigger = overlayVisible ? null : <OverlayTrigger />;
 
-    // When to listen for user events?
+    // when to listen for user events?
     const listenForEvents = (!authEnabled || isAuthenticated) && isTimeoutEnabled;
 
-    // Handler for user events (mouse clicks, key presses etc.)
+    // handler for user events (mouse clicks, key presses etc.)
     const handleUserInteraction = useCallback((e) => {
         idleTimerReset();
         // console.log("User interaction, resetting timer!");
@@ -302,8 +319,16 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const userEvents = ['click', 'mousemove', 'keydown'];
 
-    // Add listeners for user events, to the MATLAB JSD iframe
+    // IFrame elements "swallow" events, such as mousemove, click, keydown, etc.
+    // Unlike other elements, such as div, we cannot add synthetic events to an IFrame directly. 
+    // Instead we need to explicity insert event listeners to its DOM node.
+    // The idiomatic way to achieve this in React is explained here: https://react.dev/learn/manipulating-the-dom-with-refs
+
+    // This approach works for our purpose since the IFrame source and the MatlabJsd component
+    // belong to the same origin, and hence follow the Same Origin policy.
+    // **Two URLs are said to have the “same origin” if they have the same protocol, domain and port.
     useEffect(() => {
+        // access the DOM node corresponding to the MatlabJSD Iframe 
         const MatlabJsdIframeDom = MatlabJsdIframeRef.current;
 
         if (matlabUp && listenForEvents) {
@@ -323,6 +348,7 @@ function App() {
     }, [matlabUp, listenForEvents, handleUserInteraction, userEvents]);
 
     return (
+        // attach synthetic events (corresponding to user interaction) to the App component
         <div data-testid="app" className="main"
         onClick={listenForEvents ? handleUserInteraction : undefined}
         onMouseMove={listenForEvents ? handleUserInteraction : undefined}
